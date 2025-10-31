@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabuada Fácil!</title>
+    <!-- Carrega o Tailwind CSS para um design moderno e responsivo --><script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fonte personalizada para um visual mais amigável */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Efeito de transição suave */
+        .feedback-anim {
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-indigo-200 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Container Principal do Jogo -->
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 sm:p-10 text-center">
+
+        <!-- Título -->
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-indigo-700 mb-6">
+            Tabuada Fácil!
+        </h1>
+
+        <!-- Seletor de Tabuada --><div id="table-selector" class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Escolha uma tabuada para praticar:</h2>
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                <!-- Botões para cada tabuada (1-10) --><button data-table="1" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">1</button>
+                <button data-table="2" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">2</button>
+                <button data-table="3" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">3</button>
+                <button data-table="4" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">4</button>
+                <button data-table="5" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">5</button>
+                <button data-table="6" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">6</button>
+                <button data-table="7" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">7</button>
+                <button data-table="8" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">8</button>
+                <button data-table="9" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">9</button>
+                <button data-table="10" class="table-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">10</button>
+                <!-- Botão de Desafio Misto --><button data-table="mixed" class="table-btn col-span-3 sm:col-span-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">
+                    Desafio Misto
+                </button>
+            </div>
+        </div>
+
+        <!-- Área do Jogo (inicialmente escondida) --><div id="game-area" class="hidden">
+            
+            <!-- Pontuação e Título da Tabuada --><div class="flex justify-between items-center mb-6">
+                <h2 id="current-table-title" class="text-2xl font-bold text-indigo-600"></h2>
+                <div id="score" class="text-2xl font-bold text-green-600">Pontos: 0</div>
+            </div>
+
+            <!-- Pergunta --><div id="question" class="text-5xl sm:text-7xl font-bold text-gray-800 bg-gray-100 p-8 rounded-lg mb-6 shadow-inner">
+                5 x 8 = ?
+            </div>
+
+            <!-- Input da Resposta e Botão (Verificar está escondido agora) --><div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <input type="text" id="answer-input" class="flex-grow text-3xl p-4 border-4 border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 outline-none text-center max-w-xs">
+                <!-- O botão "Verificar" está escondido com a classe 'hidden' --><button id="submit-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-bold text-2xl py-4 px-8 rounded-lg transition duration-200 shadow-lg">
+                    Verificar
+                </button>
+            </div>
+
+            <!-- Feedback (Correto/Incorreto) --><div id="feedback" class="feedback-anim text-2xl font-semibold mt-5 h-8">
+                <!-- O feedback aparecerá aqui --></div>
+
+            <!-- Botão para voltar --><button id="back-btn" class="mt-6 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-6 rounded-lg transition duration-200 shadow-md">
+                Mudar Tabuada
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Referências aos elementos do DOM ---
+        const tableSelectorDiv = document.getElementById('table-selector');
+        const gameAreaDiv = document.getElementById('game-area');
+        const tableButtons = document.querySelectorAll('.table-btn');
+        const currentTableTitle = document.getElementById('current-table-title');
+        const scoreDisplay = document.getElementById('score');
+        const questionDisplay = document.getElementById('question');
+        const answerInput = document.getElementById('answer-input');
+        const submitBtn = document.getElementById('submit-btn'); // Ainda existe, mas está escondido
+        const feedbackDisplay = document.getElementById('feedback');
+        const backBtn = document.getElementById('back-btn');
+
+        // --- Variáveis de Estado do Jogo ---
+        let currentTable = 0; // A tabuada escolhida
+        let isMixedMode = false; // Se está no modo desafio
+        let num1 = 0; // Primeiro número da multiplicação
+        let num2 = 0; // Segundo número da multiplicação
+        let correctAnswer = 0; // Resposta correta
+        let score = 0; // Pontuação
+        let feedbackTimeout; // Para esconder o feedback automaticamente
+
+        // --- Funções do Jogo ---
+
+        /**
+         * Inicia o jogo para uma tabuada específica
+         * @param {string} table - O número da tabuada ou 'mixed'
+         */
+        function startGame(table) {
+            score = 0;
+            scoreDisplay.textContent = `Pontos: ${score}`;
+            isMixedMode = (table === 'mixed');
+
+            if (isMixedMode) {
+                currentTableTitle.textContent = 'Desafio Misto!';
+            } else {
+                currentTable = parseInt(table);
+                currentTableTitle.textContent = `Tabuada do ${currentTable}`;
+            }
+
+            // Esconde o seletor e mostra a área do jogo
+            tableSelectorDiv.classList.add('hidden');
+            gameAreaDiv.classList.remove('hidden');
+
+            generateQuestion();
+        }
+
+        /**
+         * Gera uma nova pergunta de multiplicação
+         */
+        function generateQuestion() {
+            if (isMixedMode) {
+                // Modo misto: números aleatórios de 1 a 10
+                num1 = Math.floor(Math.random() * 10) + 1;
+                num2 = Math.floor(Math.random() * 10) + 1;
+            } else {
+                // Modo de tabuada específica
+                num1 = currentTable;
+                num2 = Math.floor(Math.random() * 10) + 1;
+            }
+
+            correctAnswer = num1 * num2;
+            questionDisplay.textContent = `${num1} x ${num2} = ?`;
+
+            // Limpa o input e foca nele
+            answerInput.value = '';
+            answerInput.focus();
+        }
+
+        /**
+         * Verifica a resposta do utilizador
+         */
+        function checkAnswer() {
+            // Limpa feedback anterior
+            clearTimeout(feedbackTimeout);
+            feedbackDisplay.textContent = '';
+            feedbackDisplay.classList.remove('text-green-600', 'text-red-600');
+
+            const userAnswer = parseInt(answerInput.value);
+
+            // Validação para permitir apenas números
+            if (answerInput.value.trim() === '') {
+                showFeedback("Por favor, digite um número.", "text-red-600");
+                return;
+            }
+            
+            if (isNaN(userAnswer)) {
+                showFeedback("Ops! Digite apenas números, por favor.", "text-red-600");
+                // Opcional: limpar o input aqui se quiser forçar a digitação correta.
+                // answerInput.value = ''; 
+                return;
+            }
+
+            if (userAnswer === correctAnswer) {
+                // Resposta Correta
+                score++;
+                showFeedback("Correto! ✨", "text-green-600");
+            } else {
+                // Resposta Incorreta
+                showFeedback(`Incorreto. A resposta era ${correctAnswer}. ❌`, "text-red-600");
+            }
+
+            scoreDisplay.textContent = `Pontos: ${score}`;
+
+            // Gera a próxima pergunta após um curto delay
+            setTimeout(generateQuestion, 1500);
+        }
+
+        /**
+         * Mostra feedback ao utilizador e agenda para desaparecer
+         * @param {string} message - A mensagem a mostrar
+         * @param {string} colorClass - A classe de cor (Tailwind)
+         */
+        function showFeedback(message, colorClass) {
+            feedbackDisplay.textContent = message;
+            feedbackDisplay.classList.add(colorClass);
+            feedbackDisplay.style.opacity = 1;
+
+            // Agenda para esconder o feedback
+            feedbackTimeout = setTimeout(() => {
+                feedbackDisplay.style.opacity = 0;
+            }, 1400); // Um pouco antes de gerar a nova pergunta
+        }
+
+        /**
+         * Volta para o ecrã de seleção de tabuada
+         */
+        function goBackToSelector() {
+            gameAreaDiv.classList.add('hidden');
+            tableSelectorDiv.classList.remove('hidden');
+        }
+
+
+        // --- Configuração dos Event Listeners ---
+
+        // Adiciona listener para cada botão de tabuada
+        tableButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                startGame(button.dataset.table);
+            });
+        });
+
+        // O botão submitBtn ainda existe, mas não será clicável.
+        // submitBtn.addEventListener('click', checkAnswer); // Comentado/Removido conforme pedido
+
+        // Listener para a tecla "Enter" no input
+        answerInput.addEventListener('keydown', (event) => {
+            // Permite Backspace, Delete, Tab, Setas e números
+            // previne a entrada de caracteres não numéricos.
+            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
+            if (!/^\d$/.test(event.key) && !allowedKeys.includes(event.key)) {
+                event.preventDefault(); // Impede a digitação do caractere
+            }
+
+            if (event.key === 'Enter') {
+                checkAnswer();
+                event.preventDefault(); // Impede o comportamento padrão do Enter (ex: submeter formulário)
+            }
+        });
+
+        // Listener para o botão "Mudar Tabuada"
+        backBtn.addEventListener('click', goBackToSelector);
+
+        // Adiciona um listener para garantir que só números sejam digitados no input
+        answerInput.addEventListener('input', (event) => {
+            // Remove qualquer caractere que não seja um dígito
+            event.target.value = event.target.value.replace(/[^0-9]/g, '');
+        });
+
+    </script>
+</body>
+</html>
+
