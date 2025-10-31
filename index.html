@@ -83,11 +83,21 @@
                 5 x 8 = ?
             </div>
 
-            <!-- Input da Resposta e Botão (Verificar está escondido agora) --><div class="flex flex-col sm:flex-row gap-3 justify-center">
-                <input type="text" id="answer-input" class="flex-grow text-3xl p-4 border-4 border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 outline-none text-center max-w-xs">
-                <!-- O botão "Verificar" está escondido com a classe 'hidden' --><button id="submit-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-bold text-2xl py-4 px-8 rounded-lg transition duration-200 shadow-lg">
-                    Verificar
-                </button>
+            <!-- Teclado Numérico e Botão Enviar -->
+            <div class="flex flex-col items-center gap-4 justify-center">
+                <div id="keypad" class="grid grid-cols-3 gap-3">
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="1">1</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="2">2</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="3">3</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="4">4</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="5">5</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="6">6</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="7">7</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="8">8</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="9">9</button>
+                    <button id="submit-btn" class="col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold text-2xl py-4 rounded-lg transition duration-200 shadow-lg">Enviar</button>
+                    <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="0">0</button>
+                </div>
             </div>
 
             <!-- Feedback (Correto/Incorreto) --><div id="feedback" class="feedback-anim text-2xl font-semibold mt-5 h-8">
@@ -120,8 +130,8 @@
         const currentTableTitle = document.getElementById('current-table-title');
         const scoreDisplay = document.getElementById('score');
         const questionDisplay = document.getElementById('question');
-        const answerInput = document.getElementById('answer-input');
-        const submitBtn = document.getElementById('submit-btn'); // Ainda existe, mas está escondido
+        const submitBtn = document.getElementById('submit-btn');
+        const keypadButtons = document.querySelectorAll('.keypad-btn');
         const feedbackDisplay = document.getElementById('feedback');
         const backBtn = document.getElementById('back-btn');
         
@@ -151,6 +161,7 @@
         let questionCount = 0; // Contador de perguntas
         const TOTAL_QUESTIONS_PER_ROUND = 20;
         let feedbackTimeout; // Para esconder o feedback automaticamente
+        let answerBuffer = ''; // Resposta digitada via teclado numérico
         
         let currentPlayerName = ''; // Nome do jogador
         const STORAGE_NAME_KEY = 'tabuadaFacilPlayerName';
@@ -280,11 +291,17 @@
             }
 
             correctAnswer = num1 * num2;
+            answerBuffer = '';
             questionDisplay.textContent = `${num1} x ${num2} = ?`;
+            updateQuestionDisplay();
+        }
 
-            // Limpa o input e foca nele
-            answerInput.value = '';
-            answerInput.focus();
+        /**
+         * Atualiza a exibição da pergunta com a resposta digitada
+         */
+        function updateQuestionDisplay() {
+            const shownAnswer = answerBuffer.length ? answerBuffer : '?';
+            questionDisplay.textContent = `${num1} x ${num2} = ${shownAnswer}`;
         }
 
         /**
@@ -299,10 +316,10 @@
             // Proteção para não submeter resposta enquanto o feedback está a ser mostrado
             if (feedbackDisplay.style.opacity == 1) return;
 
-            const userAnswer = parseInt(answerInput.value);
+            const userAnswer = parseInt(answerBuffer);
 
             // Validação para permitir apenas números
-            if (answerInput.value.trim() === '') {
+            if (!answerBuffer || answerBuffer.trim() === '') {
                 showFeedback("Por favor, digite um número.", "text-red-600");
                 return;
             }
@@ -403,18 +420,21 @@
             });
         });
 
-        // Listener para a tecla "Enter" no input da resposta
-        answerInput.addEventListener('keydown', (event) => {
-            // Permite Backspace, Delete, Tab, Setas e números
-            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
-            if (!/^\d$/.test(event.key) && !allowedKeys.includes(event.key)) {
-                event.preventDefault(); // Impede a digitação do caractere
-            }
+        // Listeners do teclado numérico
+        keypadButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const digit = btn.dataset.digit;
+                // Limita a resposta a 3 dígitos por segurança (até 1000)
+                if (answerBuffer.length < 3) {
+                    answerBuffer += digit;
+                    updateQuestionDisplay();
+                }
+            });
+        });
 
-            if (event.key === 'Enter') {
-                checkAnswer();
-                event.preventDefault(); // Impede o comportamento padrão do Enter
-            }
+        // Listener para o botão "Enviar"
+        submitBtn.addEventListener('click', () => {
+            checkAnswer();
         });
 
         // Listener para o botão "Mudar Tabuada"
@@ -427,11 +447,7 @@
             loadHistory(currentPlayerName); // Recarrega o histórico
         });
 
-        // Adiciona um listener para garantir que só números sejam digitados no input
-        answerInput.addEventListener('input', (event) => {
-            // Remove qualquer caractere que não seja um dígito
-            event.target.value = event.target.value.replace(/[^0-9]/g, '');
-        });
+        // Removidos listeners do input; fluxo agora usa teclado numérico
 
         // --- Inicia a aplicação ---
         initializeApp();
