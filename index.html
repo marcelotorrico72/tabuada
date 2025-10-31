@@ -95,8 +95,9 @@
                     <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="7">7</button>
                     <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="8">8</button>
                     <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="9">9</button>
-                    <button id="submit-btn" class="col-span-2 bg-green-500 hover:bg-green-600 text-white font-bold text-2xl py-4 rounded-lg transition duration-200 shadow-lg">Enviar</button>
+                    <button id="clear-btn" class="col-span-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center">Apagar</button>
                     <button class="keypad-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-2xl rounded-lg shadow-sm flex items-center justify-center w-20 aspect-square sm:w-24" data-digit="0">0</button>
+                    <button id="submit-btn" class="col-span-3 bg-green-500 hover:bg-green-600 text-white font-bold text-2xl py-4 rounded-lg transition duration-200 shadow-lg">Enviar</button>
                 </div>
             </div>
 
@@ -131,6 +132,7 @@
         const scoreDisplay = document.getElementById('score');
         const questionDisplay = document.getElementById('question');
         const submitBtn = document.getElementById('submit-btn');
+        const clearBtn = document.getElementById('clear-btn');
         const keypadButtons = document.querySelectorAll('.keypad-btn');
         const feedbackDisplay = document.getElementById('feedback');
         const backBtn = document.getElementById('back-btn');
@@ -435,6 +437,12 @@
         // Listener para o botão "Enviar"
         submitBtn.addEventListener('click', () => {
             checkAnswer();
+        });
+
+        // Botão para apagar a resposta digitada
+        clearBtn.addEventListener('click', () => {
+            answerBuffer = '';
+            updateQuestionDisplay();
         });
 
         // Listener para o botão "Mudar Tabuada"
