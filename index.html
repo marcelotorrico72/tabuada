@@ -15,16 +15,34 @@
         .feedback-anim {
             transition: opacity 0.3s ease-in-out;
         }
+        /* Garante que o modal de nome esteja no topo */
+        #name-modal-overlay {
+            z-index: 50;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-indigo-200 min-h-screen flex items-center justify-center p-4">
 
+    <!-- Modal para Pedir o Nome (Inicialmente escondido) -->
+    <div id="name-modal-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-8 rounded-2xl shadow-xl text-center w-full max-w-sm">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Qual é o seu nome?</h2>
+            <input type="text" id="name-input" class="w-full text-2xl p-3 border-4 border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-300 outline-none text-center" placeholder="Digite seu nome...">
+            <button id="save-name-btn" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xl py-3 px-6 rounded-lg transition duration-200 shadow-lg">
+                Salvar e Começar
+            </button>
+        </div>
+    </div>
+
     <!-- Container Principal do Jogo --><div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 sm:p-10 text-center">
 
         <!-- Título -->
-        <h1 class="text-4xl sm:text-5xl font-extrabold text-indigo-700 mb-6">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-indigo-700 mb-2">
             Tabuada Fácil!
         </h1>
+        
+        <!-- Saudação (inicialmente escondida) -->
+        <h2 id="welcome-greeting" class="hidden text-2xl font-semibold text-gray-600 mb-6"></h2>
 
         <!-- Seletor de Tabuada --><div id="table-selector" class="mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Escolha uma tabuada para praticar:</h2>
@@ -42,6 +60,14 @@
                 <!-- Botão de Desafio Misto --><button data-table="mixed" class="table-btn col-span-3 sm:col-span-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-200 shadow-md">
                     Desafio Misto
                 </button>
+            </div>
+            
+            <!-- Histórico de Resultados (inicialmente escondido) -->
+            <div id="history-area" class="mt-10 text-left hidden">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3 text-center">Últimos Resultados:</h3>
+                <ul id="history-list" class="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto shadow-inner space-y-2">
+                    <!-- Resultados serão injetados aqui pelo JS -->
+                </ul>
             </div>
         </div>
 
@@ -98,6 +124,7 @@
         const submitBtn = document.getElementById('submit-btn'); // Ainda existe, mas está escondido
         const feedbackDisplay = document.getElementById('feedback');
         const backBtn = document.getElementById('back-btn');
+        
         // Novas referências para a tela de resultados
         const questionCounter = document.getElementById('question-counter');
         const resultsArea = document.getElementById('results-area');
@@ -105,6 +132,13 @@
         const finalMisses = document.getElementById('final-misses');
         const playAgainBtn = document.getElementById('play-again-btn');
 
+        // Novas referências para o Modal de Nome e Histórico
+        const nameModalOverlay = document.getElementById('name-modal-overlay');
+        const nameInput = document.getElementById('name-input');
+        const saveNameBtn = document.getElementById('save-name-btn');
+        const welcomeGreeting = document.getElementById('welcome-greeting');
+        const historyArea = document.getElementById('history-area');
+        const historyList = document.getElementById('history-list');
 
         // --- Variáveis de Estado do Jogo ---
         let currentTable = 0; // A tabuada escolhida
@@ -117,6 +151,88 @@
         let questionCount = 0; // Contador de perguntas
         const TOTAL_QUESTIONS_PER_ROUND = 20;
         let feedbackTimeout; // Para esconder o feedback automaticamente
+        
+        let currentPlayerName = ''; // Nome do jogador
+        const STORAGE_NAME_KEY = 'tabuadaFacilPlayerName';
+        const STORAGE_RESULTS_KEY = 'tabuadaFacilResults';
+
+
+        // --- Funções de Inicialização e Perfil ---
+
+        /**
+         * Inicializa a aplicação
+         * Verifica se o nome existe no localStorage
+         */
+        function initializeApp() {
+            currentPlayerName = localStorage.getItem(STORAGE_NAME_KEY);
+            if (!currentPlayerName) {
+                // Se não tem nome, mostra o modal
+                nameModalOverlay.classList.remove('hidden');
+                nameInput.focus();
+            } else {
+                // Se tem nome, saúda o jogador e carrega o histórico
+                showGreeting(currentPlayerName);
+                loadHistory(currentPlayerName);
+            }
+        }
+
+        /**
+         * Salva o nome do utilizador no localStorage
+         */
+        function saveName() {
+            const name = nameInput.value.trim();
+            if (name) {
+                currentPlayerName = name;
+                localStorage.setItem(STORAGE_NAME_KEY, name);
+                nameModalOverlay.classList.add('hidden');
+                showGreeting(name);
+                loadHistory(name); // Carrega o histórico assim que o nome é salvo
+            } else {
+                // Opcional: Adicionar feedback de erro se o nome estiver vazio
+                nameInput.classList.add('border-red-500');
+                setTimeout(() => nameInput.classList.remove('border-red-500'), 1000);
+            }
+        }
+
+        /**
+         * Mostra a saudação de boas-vindas
+         * @param {string} name - O nome do jogador
+         */
+        function showGreeting(name) {
+            welcomeGreeting.textContent = `Olá, ${name}! Vamos praticar?`;
+            welcomeGreeting.classList.remove('hidden');
+        }
+
+        /**
+         * Carrega e exibe o histórico de resultados do jogador
+         * @param {string} name - O nome do jogador
+         */
+        function loadHistory(name) {
+            historyList.innerHTML = ''; // Limpa a lista antiga
+            const allResults = JSON.parse(localStorage.getItem(STORAGE_RESULTS_KEY)) || [];
+            
+            // Filtra os resultados apenas para este jogador
+            const playerResults = allResults.filter(r => r.name === name);
+
+            if (playerResults.length === 0) {
+                historyArea.classList.add('hidden'); // Esconde se não houver histórico
+                return;
+            }
+
+            historyArea.classList.remove('hidden');
+            
+            // Mostra os últimos 5 resultados, do mais novo para o mais antigo
+            playerResults.reverse().slice(0, 5).forEach(r => {
+                const date = new Date(r.date).toLocaleString('pt-pt', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                const li = document.createElement('li');
+                li.className = 'flex flex-col sm:flex-row justify-between p-2 border-b text-sm';
+                li.innerHTML = `
+                    <span class="font-semibold text-indigo-600">🎲 ${r.table}</span>
+                    <span class="text-gray-600">✅ ${r.hits} Acertos | ❌ ${r.misses} Erros <span class="text-gray-400 ml-2">(${date})</span></span>
+                `;
+                historyList.appendChild(li);
+            });
+        }
 
         // --- Funções do Jogo ---
 
@@ -180,6 +296,9 @@
             feedbackDisplay.textContent = '';
             feedbackDisplay.classList.remove('text-green-600', 'text-red-600');
 
+            // Proteção para não submeter resposta enquanto o feedback está a ser mostrado
+            if (feedbackDisplay.style.opacity == 1) return;
+
             const userAnswer = parseInt(answerInput.value);
 
             // Validação para permitir apenas números
@@ -190,8 +309,6 @@
             
             if (isNaN(userAnswer)) {
                 showFeedback("Ops! Digite apenas números, por favor.", "text-red-600");
-                // Opcional: limpar o input aqui se quiser forçar a digitação correta.
-                // answerInput.value = ''; 
                 return;
             }
 
@@ -234,9 +351,23 @@
         }
 
         /**
-         * Mostra a tela de resultados finais
+         * Mostra a tela de resultados finais e SALVA o resultado
          */
         function showResults() {
+            // --- Salvar Resultado no localStorage ---
+            const result = {
+                name: currentPlayerName,
+                table: isMixedMode ? 'Desafio Misto' : `Tabuada do ${currentTable}`,
+                hits: score,
+                misses: misses,
+                date: new Date().toISOString()
+            };
+            
+            const allResults = JSON.parse(localStorage.getItem(STORAGE_RESULTS_KEY)) || [];
+            allResults.push(result);
+            localStorage.setItem(STORAGE_RESULTS_KEY, JSON.stringify(allResults));
+            // --- Fim de Salvar Resultado ---
+
             gameAreaDiv.classList.add('hidden');
             resultsArea.classList.remove('hidden');
             finalHits.textContent = `Acertos: ${score}`;
@@ -250,10 +381,20 @@
             gameAreaDiv.classList.add('hidden');
             resultsArea.classList.add('hidden'); // Garante que resultados estão escondidos
             tableSelectorDiv.classList.remove('hidden');
+            loadHistory(currentPlayerName); // Recarrega o histórico
         }
 
 
         // --- Configuração dos Event Listeners ---
+
+        // Listeners do Modal de Nome
+        saveNameBtn.addEventListener('click', saveName);
+        nameInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                saveName();
+            }
+        });
+
 
         // Adiciona listener para cada botão de tabuada
         tableButtons.forEach(button => {
@@ -262,13 +403,9 @@
             });
         });
 
-        // O botão submitBtn ainda existe, mas não será clicável.
-        // submitBtn.addEventListener('click', checkAnswer); // Comentado/Removido conforme pedido
-
-        // Listener para a tecla "Enter" no input
+        // Listener para a tecla "Enter" no input da resposta
         answerInput.addEventListener('keydown', (event) => {
             // Permite Backspace, Delete, Tab, Setas e números
-            // previne a entrada de caracteres não numéricos.
             const allowedKeys = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
             if (!/^\d$/.test(event.key) && !allowedKeys.includes(event.key)) {
                 event.preventDefault(); // Impede a digitação do caractere
@@ -276,7 +413,7 @@
 
             if (event.key === 'Enter') {
                 checkAnswer();
-                event.preventDefault(); // Impede o comportamento padrão do Enter (ex: submeter formulário)
+                event.preventDefault(); // Impede o comportamento padrão do Enter
             }
         });
 
@@ -287,6 +424,7 @@
         playAgainBtn.addEventListener('click', () => {
             resultsArea.classList.add('hidden');
             tableSelectorDiv.classList.remove('hidden');
+            loadHistory(currentPlayerName); // Recarrega o histórico
         });
 
         // Adiciona um listener para garantir que só números sejam digitados no input
@@ -294,6 +432,9 @@
             // Remove qualquer caractere que não seja um dígito
             event.target.value = event.target.value.replace(/[^0-9]/g, '');
         });
+
+        // --- Inicia a aplicação ---
+        initializeApp();
 
     </script>
 </body>
