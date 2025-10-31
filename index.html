@@ -19,8 +19,7 @@
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-indigo-200 min-h-screen flex items-center justify-center p-4">
 
-    <!-- Container Principal do Jogo -->
-    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 sm:p-10 text-center">
+    <!-- Container Principal do Jogo --><div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 sm:p-10 text-center">
 
         <!-- Título -->
         <h1 class="text-4xl sm:text-5xl font-extrabold text-indigo-700 mb-6">
@@ -50,7 +49,8 @@
             
             <!-- Pontuação e Título da Tabuada --><div class="flex justify-between items-center mb-6">
                 <h2 id="current-table-title" class="text-2xl font-bold text-indigo-600"></h2>
-                <div id="score" class="text-2xl font-bold text-green-600">Pontos: 0</div>
+                <div id="score" class="text-lg font-bold text-green-600">Pontos: 0</div>
+                <div id="question-counter" class="text-lg font-bold text-gray-500">Pergunta: 0 / 20</div>
             </div>
 
             <!-- Pergunta --><div id="question" class="text-5xl sm:text-7xl font-bold text-gray-800 bg-gray-100 p-8 rounded-lg mb-6 shadow-inner">
@@ -72,6 +72,18 @@
             </button>
         </div>
 
+        <!-- Área de Resultados (inicialmente escondida) -->
+        <div id="results-area" class="hidden text-center">
+            <h2 class="text-4xl font-bold text-indigo-700 mb-6">Rodada Completa!</h2>
+            <div class="bg-gray-100 p-8 rounded-lg shadow-inner mb-6 space-y-4">
+                <div id="final-hits" class="text-3xl font-semibold text-green-600">Acertos: 0</div>
+                <div id="final-misses" class="text-3xl font-semibold text-red-600">Erros: 0</div>
+            </div>
+            <button id="play-again-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-2xl py-4 px-8 rounded-lg transition duration-200 shadow-lg">
+                Jogar Novamente
+            </button>
+        </div>
+
     </div>
 
     <script>
@@ -86,6 +98,13 @@
         const submitBtn = document.getElementById('submit-btn'); // Ainda existe, mas está escondido
         const feedbackDisplay = document.getElementById('feedback');
         const backBtn = document.getElementById('back-btn');
+        // Novas referências para a tela de resultados
+        const questionCounter = document.getElementById('question-counter');
+        const resultsArea = document.getElementById('results-area');
+        const finalHits = document.getElementById('final-hits');
+        const finalMisses = document.getElementById('final-misses');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
 
         // --- Variáveis de Estado do Jogo ---
         let currentTable = 0; // A tabuada escolhida
@@ -93,7 +112,10 @@
         let num1 = 0; // Primeiro número da multiplicação
         let num2 = 0; // Segundo número da multiplicação
         let correctAnswer = 0; // Resposta correta
-        let score = 0; // Pontuação
+        let score = 0; // Pontuação (acertos)
+        let misses = 0; // Contador de erros
+        let questionCount = 0; // Contador de perguntas
+        const TOTAL_QUESTIONS_PER_ROUND = 20;
         let feedbackTimeout; // Para esconder o feedback automaticamente
 
         // --- Funções do Jogo ---
@@ -104,6 +126,8 @@
          */
         function startGame(table) {
             score = 0;
+            misses = 0;
+            questionCount = 0;
             scoreDisplay.textContent = `Pontos: ${score}`;
             isMixedMode = (table === 'mixed');
 
@@ -117,6 +141,7 @@
             // Esconde o seletor e mostra a área do jogo
             tableSelectorDiv.classList.add('hidden');
             gameAreaDiv.classList.remove('hidden');
+            resultsArea.classList.add('hidden'); // Garante que a tela de resultados esteja escondida
 
             generateQuestion();
         }
@@ -125,6 +150,9 @@
          * Gera uma nova pergunta de multiplicação
          */
         function generateQuestion() {
+            questionCount++; // Incrementa o contador de perguntas
+            questionCounter.textContent = `Pergunta: ${questionCount} / ${TOTAL_QUESTIONS_PER_ROUND}`;
+
             if (isMixedMode) {
                 // Modo misto: números aleatórios de 1 a 10
                 num1 = Math.floor(Math.random() * 10) + 1;
@@ -173,13 +201,20 @@
                 showFeedback("Correto! ✨", "text-green-600");
             } else {
                 // Resposta Incorreta
+                misses++;
                 showFeedback(`Incorreto. A resposta era ${correctAnswer}. ❌`, "text-red-600");
             }
 
             scoreDisplay.textContent = `Pontos: ${score}`;
 
-            // Gera a próxima pergunta após um curto delay
-            setTimeout(generateQuestion, 1500);
+            // Verifica se a rodada terminou
+            if (questionCount >= TOTAL_QUESTIONS_PER_ROUND) {
+                // Rodada terminou! Mostrar resultados após o feedback
+                setTimeout(showResults, 1500);
+            } else {
+                // Gera a próxima pergunta após um curto delay
+                setTimeout(generateQuestion, 1500);
+            }
         }
 
         /**
@@ -199,10 +234,21 @@
         }
 
         /**
+         * Mostra a tela de resultados finais
+         */
+        function showResults() {
+            gameAreaDiv.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+            finalHits.textContent = `Acertos: ${score}`;
+            finalMisses.textContent = `Erros: ${misses}`;
+        }
+
+        /**
          * Volta para o ecrã de seleção de tabuada
          */
         function goBackToSelector() {
             gameAreaDiv.classList.add('hidden');
+            resultsArea.classList.add('hidden'); // Garante que resultados estão escondidos
             tableSelectorDiv.classList.remove('hidden');
         }
 
@@ -237,6 +283,12 @@
         // Listener para o botão "Mudar Tabuada"
         backBtn.addEventListener('click', goBackToSelector);
 
+        // Novo listener para o botão "Jogar Novamente"
+        playAgainBtn.addEventListener('click', () => {
+            resultsArea.classList.add('hidden');
+            tableSelectorDiv.classList.remove('hidden');
+        });
+
         // Adiciona um listener para garantir que só números sejam digitados no input
         answerInput.addEventListener('input', (event) => {
             // Remove qualquer caractere que não seja um dígito
@@ -246,4 +298,3 @@
     </script>
 </body>
 </html>
-
